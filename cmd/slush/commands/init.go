@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/internal/settlement/protostar"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
@@ -83,23 +81,24 @@ func initProtostarConfig(conf *cfg.Config, accountAddress, network string) error
 }
 
 func initVerifierAddress(conf *cfg.Config, logger log.Logger) (err error) {
-	classHashHex, transactionHashHex, err := protostar.Declare(logger, conf.Protostar, filepath.Join(conf.CairoDir, "build/main.json"))
-	if err != nil {
-		return
-	}
-	logger.Info(fmt.Sprintf("Successfully sent declare tx with classHash: %s and transactionHash: %s", classHashHex, transactionHashHex))
+	// classHashHex, transactionHashHex, err := protostar.Declare(logger, conf.Protostar, filepath.Join(conf.CairoDir, "build/main.json"))
+	// if err != nil {
+	// 	return
+	// }
+	// logger.Info(fmt.Sprintf("Successfully sent declare tx with classHash: %s and transactionHash: %s", classHashHex, transactionHashHex))
 
-	contractAddressHex, transactionHex, err := protostar.Deploy(logger, conf.Protostar, classHashHex)
-	if err != nil {
-		return
-	}
-	logger.Info(fmt.Sprintf("Successfully sent deploy tx with contractAddress: %s and transactionHash: %s", contractAddressHex, transactionHex))
+	// contractAddressHex, transactionHex, err := protostar.Deploy(logger, conf.Protostar, classHashHex)
+	// if err != nil {
+	// 	return
+	// }
+	// logger.Info(fmt.Sprintf("Successfully sent deploy tx with contractAddress: %s and transactionHash: %s", contractAddressHex, transactionHex))
 
-	if err != nil {
-		return
-	}
+	// if err != nil {
+	// 	return
+	// }
 
-	conf.VerifierAddress = contractAddressHex
+	// conf.VerifierAddress = contractAddressHex
+	conf.VerifierAddress = "0x0000000000000000000000000000000000000001"
 	return
 }
 
