@@ -1,90 +1,28 @@
 package merkle
 
 import (
+	"crypto/sha256"
 	"hash"
 	"math/bits"
-
-	"github.com/tendermint/tendermint/crypto"
 )
 
-// HashFromByteSlicesInt128 computes a Merkle tree where the leaves are the byte slice,
+// HashFromByteSlices computes a Merkle tree where the leaves are the byte slice,
 // in the provided order. It follows RFC-6962.
-func HashFromByteSlicesInt128(items [][]byte) []byte {
-	return hashFromByteSlices(crypto.New128(), items)
+func HashFromByteSlices(items [][]byte) []byte {
+	return hashFromByteSlices(sha256.New(), items)
 }
 
-func hashFromByteSlices(hasher hash.Hash, items [][]byte) []byte {
+func hashFromByteSlices(sha hash.Hash, items [][]byte) []byte {
 	switch len(items) {
 	case 0:
 		return emptyHash()
 	case 1:
-		return leafHashOpt(hasher, items[0])
+		return leafHashOpt(sha, items[0])
 	default:
 		k := getSplitPoint(int64(len(items)))
-		var left, right []byte
-		if len(items) >= 4 {
-			hasher2 := crypto.New128()
-
-			leftChan := make(chan []byte)
-			rightChan := make(chan []byte)
-
-			parallelhashFromByteSlices := func(hashing hash.Hash, itemsList [][]byte, ch chan []byte) {
-				ch <- hashFromByteSlices(hashing, itemsList)
-			}
-
-			leftItems := [][]byte{}
-			leftItems = append(leftItems, items[:k]...)
-
-			go parallelhashFromByteSlices(hasher, leftItems, leftChan)
-			go parallelhashFromByteSlices(hasher2, items[k:], rightChan)
-
-			left = <-leftChan
-			right = <-rightChan
-		} else {
-			left = hashFromByteSlices(hasher, items[:k])
-			right = hashFromByteSlices(hasher, items[k:])
-		}
-
-		return innerHashOpt(hasher, left, right)
-	}
-}
-func HashFromByteSlicesFelt(items [][]byte) []byte {
-	return hashFromByteSlicesFelt(crypto.NewFelt(), items)
-}
-
-func hashFromByteSlicesFelt(hasher hash.Hash, items [][]byte) []byte {
-	switch len(items) {
-	case 0:
-		return emptyHash()
-	case 1:
-		return leafHashOptFelt(hasher, items[0])
-	default:
-		k := getSplitPoint(int64(len(items)))
-		var left, right []byte
-		if len(items) >= 4 {
-			hasher2 := crypto.NewFelt()
-
-			leftChan := make(chan []byte)
-			rightChan := make(chan []byte)
-
-			parallelhashFromByteSlicesFelt := func(hashing hash.Hash, itemsList [][]byte, ch chan []byte) {
-				ch <- hashFromByteSlicesFelt(hashing, itemsList)
-			}
-
-			leftItems := [][]byte{}
-			leftItems = append(leftItems, items[:k]...)
-
-			go parallelhashFromByteSlicesFelt(hasher, leftItems, leftChan)
-			go parallelhashFromByteSlicesFelt(hasher2, items[k:], rightChan)
-
-			left = <-leftChan
-			right = <-rightChan
-		} else {
-			left = hashFromByteSlicesFelt(hasher, items[:k])
-			right = hashFromByteSlicesFelt(hasher, items[k:])
-		}
-
-		return innerHashOpt(hasher, left, right)
+		left := hashFromByteSlices(sha, items[:k])
+		right := hashFromByteSlices(sha, items[k:])
+		return innerHashOpt(sha, left, right)
 	}
 }
 
@@ -129,7 +67,7 @@ func hashFromByteSlicesFelt(hasher hash.Hash, items [][]byte) []byte {
 // implementation for so little benefit.
 func HashFromByteSlicesIterative(input [][]byte) []byte {
 	items := make([][]byte, len(input))
-	hasher := crypto.New128()
+	sha := sha256.New()
 	for i, leaf := range input {
 		items[i] = leafHash(leaf)
 	}
@@ -146,7 +84,7 @@ func HashFromByteSlicesIterative(input [][]byte) []byte {
 			wp := 0 // write position
 			for rp < size {
 				if rp+1 < size {
-					items[wp] = innerHashOpt(hasher, items[rp], items[rp+1])
+					items[wp] = innerHashOpt(sha, items[rp], items[rp+1])
 					rp += 2
 				} else {
 					items[wp] = items[rp]

@@ -1,4 +1,4 @@
-package sha
+package tmhash
 
 import (
 	"crypto/sha256"
