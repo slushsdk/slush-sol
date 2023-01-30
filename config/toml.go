@@ -2,14 +2,12 @@ package config
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 
-	stark "github.com/tendermint/tendermint/crypto/stark"
 	tmos "github.com/tendermint/tendermint/libs/os"
 )
 
@@ -714,39 +712,6 @@ func writeFile(filePath string, contents []byte, mode os.FileMode) error {
 	return nil
 }
 
-func getKeys() (stark.PrivKey, stark.PubKey) {
-	privKey := stark.GenPrivKey()
-	pubKey := stark.PubKeyFromPrivate(&privKey)
-	return privKey, pubKey
-}
-
-type key interface {
-	TypeTag() string
-}
-
-type keyDetails struct {
-	typeTag string
-	value   string
-}
-
-func withQuotationMarks(s string) string {
-	return "\"" + s + "\""
-}
-
-func getKeyTypeAndValue(key key) keyDetails {
-	var keyJSONBytes, _ = json.Marshal(key)
-	var typeTag = withQuotationMarks(key.TypeTag())
-	var value = string(keyJSONBytes)
-
-	return keyDetails{typeTag, value}
-}
-
-var pv, pb = getKeys()
-var privValidatorPrivateKeyDetails = getKeyTypeAndValue(pv)
-var privValidatorPublicKeyDetails = getKeyTypeAndValue(pb)
-var privValidatorAddress = withQuotationMarks(pb.Address().String())
-var privValidatorPublicKeyType = withQuotationMarks(pb.Type())
-
 var testGenesisFmt = `{
   "genesis_time": "2018-10-10T08:20:13.695936996Z",
   "chain_id": "%s",
@@ -764,7 +729,7 @@ var testGenesisFmt = `{
 		},
 		"validator": {
 			"pub_key_types": [
-				` + privValidatorPublicKeyType + `
+				"ed25519"
 			]
 		},
 		"version": {}
@@ -772,8 +737,8 @@ var testGenesisFmt = `{
   "validators": [
     {
       "pub_key": {
-        "type": ` + privValidatorPublicKeyDetails.typeTag + `,
-        "value":` + privValidatorPublicKeyDetails.value + `
+        "type": "tendermint/PubKeyEd25519",
+        "value":"AT/+aaL1eB0477Mud9JMm8Sh8BIvOYlPGC9KkIUmFaE="
       },
       "power": "10",
       "name": ""
@@ -783,14 +748,14 @@ var testGenesisFmt = `{
 }`
 
 var testPrivValidatorKey = `{
-  "address": ` + privValidatorAddress + `,
+  "address": "A3258DCBF45DCA0DF052981870F2D1441A36D145",
   "pub_key": {
-    "type": ` + privValidatorPublicKeyDetails.typeTag + `,
-    "value": ` + privValidatorPublicKeyDetails.value + `
+    "type": "tendermint/PubKeyEd25519",
+    "value": "AT/+aaL1eB0477Mud9JMm8Sh8BIvOYlPGC9KkIUmFaE="
   },
   "priv_key": {
-    "type": ` + privValidatorPrivateKeyDetails.typeTag + `,
-    "value": ` + privValidatorPrivateKeyDetails.value + `
+    "type": "tendermint/PrivKeyEd25519",
+    "value": "EVkqJO/jIXp3rkASXfh9YnyToYXRXhBr6g9cQVxPFnQBP/5povV4HTjvsy530kybxKHwEi85iU8YL0qQhSYVoQ=="
   }
 }`
 
