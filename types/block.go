@@ -2,7 +2,7 @@ package types
 
 import (
 	"bytes"
-	encoding_binary "encoding/binary"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/utils"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmsync "github.com/tendermint/tendermint/internal/libs/sync"
 	"github.com/tendermint/tendermint/libs/bits"
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
@@ -25,7 +25,7 @@ const (
 	// MaxHeaderBytes is a maximum header size.
 	// NOTE: Because app hash can be of arbitrary size, the header is therefore not
 	// capped in size and thus this number should be seen as a soft max
-	MaxHeaderBytes int64 = 626 + 12
+	MaxHeaderBytes int64 = 626
 
 	// MaxOverheadForBlock - maximum overhead to encode a block (up to
 	// MaxBlockSizeBytes in size) not including it's parts except Data.
@@ -453,35 +453,38 @@ func (h *Header) Hash() tmbytes.HexBytes {
 
 	pbt := HashTime(h.Time)
 
-	bzbi := make([]byte, crypto.HashSize)
+	var bzbi []byte
 	if h.LastBlockID.IsNil() {
-		bzbi = make([]byte, crypto.HashSize)
+		bzbi = make([]byte, tmhash.Size)
 	} else {
 		bzbi = HashBlockID(*CanonicalizeBlockID(h.LastBlockID.ToProto()))
 	}
 
-	chainIDB := utils.ByteRounder(16)([]byte(h.ChainID))
+	// TODO (maybe rounding ?)
+	chainIdbytes := []byte(h.ChainID)
+	chainIdHash := tmhash.Sum(chainIdbytes)
 
 	heightB_int64 := make([]byte, 8)
-	encoding_binary.BigEndian.PutUint64(heightB_int64, uint64(h.Height))
+	binary.BigEndian.PutUint64(heightB_int64, uint64(h.Height))
 
-	heightB_hash := crypto.Checksum128(heightB_int64)
+	heightB_hash := tmhash.Sum(heightB_int64)
 
-	return merkle.HashFromByteSlicesFelt([][]byte{
-		utils.ByteRounder(32)(hbz),
-		utils.ByteRounder(32)(crypto.Checksum128(chainIDB)),
-		utils.ByteRounder(32)(heightB_hash[:]),
-		utils.ByteRounder(32)(pbt),
-		utils.ByteRounder(32)(bzbi),
-		utils.ByteRounder(32)([]byte(h.LastCommitHash)),
-		utils.ByteRounder(32)(h.DataHash),
-		utils.ByteRounder(32)([]byte(h.ValidatorsHash)),
-		utils.ByteRounder(32)([]byte(h.NextValidatorsHash)),
-		utils.ByteRounder(32)([]byte(h.ConsensusHash)),
-		utils.ByteRounder(32)([]byte(h.AppHash)),
-		utils.ByteRounder(32)([]byte(h.LastResultsHash)),
-		utils.ByteRounder(32)([]byte(h.EvidenceHash)),
-		utils.ByteRounder(32)([]byte(h.ProposerAddress)),
+	// TODO (maybe rounding ?) (for all rows)
+	return merkle.HashFromByteSlices([][]byte{
+		hbz,
+		chainIdHash,
+		heightB_hash[:],
+		pbt,
+		bzbi,
+		[]byte(h.LastCommitHash),
+		h.DataHash,
+		[]byte(h.ValidatorsHash),
+		[]byte(h.NextValidatorsHash),
+		[]byte(h.ConsensusHash),
+		[]byte(h.AppHash),
+		[]byte(h.LastResultsHash),
+		[]byte(h.EvidenceHash),
+		[]byte(h.ProposerAddress),
 	})
 }
 
@@ -599,7 +602,7 @@ const (
 	MaxCommitOverheadBytes int64 = 94
 	// Commit sig size is made up of 64 bytes for the signature, 20 bytes for the address,
 	// 1 byte for the flag and 14 bytes for the timestamp
-	MaxCommitSigBytes int64 = 109 + 12
+	MaxCommitSigBytes int64 = 109
 )
 
 // CommitSig is a part of the Vote included in a Commit.
@@ -917,7 +920,7 @@ func (commit *Commit) Hash() tmbytes.HexBytes {
 
 			bs[i] = bz
 		}
-		commit.hash = merkle.HashFromByteSlicesInt128(bs)
+		commit.hash = merkle.HashFromByteSlices(bs)
 	}
 	return commit.hash
 }
@@ -1220,9 +1223,9 @@ func (blockID BlockID) IsZero() bool {
 
 // IsComplete returns true if this is a valid BlockID of a non-nil block.
 func (blockID BlockID) IsComplete() bool {
-	return len(blockID.Hash) == crypto.HashSize &&
+	return len(blockID.Hash) == tmhash.Size &&
 		blockID.PartSetHeader.Total > 0 &&
-		len(blockID.PartSetHeader.Hash) == crypto.HashSize
+		len(blockID.PartSetHeader.Hash) == tmhash.Size
 }
 
 // String returns a human readable string representation of the BlockID.

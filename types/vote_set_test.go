@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/pedersen"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmtime "github.com/tendermint/tendermint/libs/time"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
@@ -79,7 +79,7 @@ func TestVoteSet_AddVote_Bad(t *testing.T) {
 		require.NoError(t, err)
 		addr := pubKey.Address()
 		vote := withValidator(voteProto, addr, 0)
-		added, err := signAddVote(privValidators[0], withBlockHash(vote, pedersen.RandFeltBytes(32)), voteSet)
+		added, err := signAddVote(privValidators[0], withBlockHash(vote, tmrand.Bytes(32)), voteSet)
 		if added || err == nil {
 			t.Errorf("expected VoteSet.Add to fail, conflicting vote.")
 		}
@@ -153,7 +153,7 @@ func TestVoteSet_2_3Majority(t *testing.T) {
 		require.NoError(t, err)
 		addr := pubKey.Address()
 		vote := withValidator(voteProto, addr, 6)
-		_, err = signAddVote(privValidators[6], withBlockHash(vote, pedersen.RandFeltBytes(32)), voteSet)
+		_, err = signAddVote(privValidators[6], withBlockHash(vote, tmrand.Bytes(32)), voteSet)
 		require.NoError(t, err)
 		blockID, ok = voteSet.TwoThirdsMajority()
 		assert.False(t, ok || !blockID.IsZero(), "there should be no 2/3 majority")
@@ -176,9 +176,9 @@ func TestVoteSet_2_3MajorityRedux(t *testing.T) {
 	height, round := int64(1), int32(0)
 	voteSet, _, privValidators := randVoteSet(height, round, tmproto.PrevoteType, 100, 1)
 
-	blockHash := pedersen.RandFeltBytes(crypto.HashSize)
+	blockHash := crypto.CRandBytes(32)
 	blockPartsTotal := uint32(123)
-	blockPartSetHeader := PartSetHeader{blockPartsTotal, pedersen.RandFeltBytes(crypto.HashSize)}
+	blockPartSetHeader := PartSetHeader{blockPartsTotal, crypto.CRandBytes(32)}
 
 	voteProto := &Vote{
 		ValidatorAddress: nil, // NOTE: must fill in
@@ -222,7 +222,7 @@ func TestVoteSet_2_3MajorityRedux(t *testing.T) {
 		require.NoError(t, err)
 		addr := pubKey.Address()
 		vote := withValidator(voteProto, addr, 67)
-		blockPartsHeader := PartSetHeader{blockPartsTotal, pedersen.RandFeltBytes(crypto.HashSize)}
+		blockPartsHeader := PartSetHeader{blockPartsTotal, crypto.CRandBytes(32)}
 		_, err = signAddVote(privValidators[67], withBlockPartSetHeader(vote, blockPartsHeader), voteSet)
 		require.NoError(t, err)
 		blockID, ok = voteSet.TwoThirdsMajority()
@@ -250,7 +250,7 @@ func TestVoteSet_2_3MajorityRedux(t *testing.T) {
 		require.NoError(t, err)
 		addr := pubKey.Address()
 		vote := withValidator(voteProto, addr, 69)
-		_, err = signAddVote(privValidators[69], withBlockHash(vote, pedersen.RandFeltBytes(32)), voteSet)
+		_, err = signAddVote(privValidators[69], withBlockHash(vote, tmrand.Bytes(32)), voteSet)
 		require.NoError(t, err)
 		blockID, ok = voteSet.TwoThirdsMajority()
 		assert.False(t, ok || !blockID.IsZero(),
@@ -274,9 +274,8 @@ func TestVoteSet_2_3MajorityRedux(t *testing.T) {
 func TestVoteSet_Conflicts(t *testing.T) {
 	height, round := int64(1), int32(0)
 	voteSet, _, privValidators := randVoteSet(height, round, tmproto.PrevoteType, 4, 1)
-
-	blockHash1 := pedersen.RandFeltBytes(32)
-	blockHash2 := pedersen.RandFeltBytes(32)
+	blockHash1 := tmrand.Bytes(32)
+	blockHash2 := tmrand.Bytes(32)
 
 	voteProto := &Vote{
 		ValidatorAddress: nil,
@@ -404,8 +403,7 @@ func TestVoteSet_Conflicts(t *testing.T) {
 func TestVoteSet_MakeCommit(t *testing.T) {
 	height, round := int64(1), int32(0)
 	voteSet, _, privValidators := randVoteSet(height, round, tmproto.PrecommitType, 10, 1)
-
-	blockHash, blockPartSetHeader := pedersen.RandFeltBytes(crypto.HashSize), PartSetHeader{123, pedersen.RandFeltBytes(crypto.HashSize)}
+	blockHash, blockPartSetHeader := crypto.CRandBytes(32), PartSetHeader{123, crypto.CRandBytes(32)}
 
 	voteProto := &Vote{
 		ValidatorAddress: nil,
@@ -438,8 +436,8 @@ func TestVoteSet_MakeCommit(t *testing.T) {
 		assert.NoError(t, err)
 		addr := pv.Address()
 		vote := withValidator(voteProto, addr, 6)
-		vote = withBlockHash(vote, pedersen.RandFeltBytes(32))
-		vote = withBlockPartSetHeader(vote, PartSetHeader{123, pedersen.RandFeltBytes(32)})
+		vote = withBlockHash(vote, tmrand.Bytes(32))
+		vote = withBlockPartSetHeader(vote, PartSetHeader{123, tmrand.Bytes(32)})
 
 		_, err = signAddVote(privValidators[6], vote, voteSet)
 		require.NoError(t, err)

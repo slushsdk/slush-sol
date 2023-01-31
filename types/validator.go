@@ -2,13 +2,14 @@ package types
 
 import (
 	"bytes"
-	encoding_binary "encoding/binary"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/encoding"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
@@ -135,15 +136,15 @@ func (v *Validator) Bytes() []byte {
 func (v *Validator) Hash() []byte {
 
 	votingPowerBytes := make([]byte, 8)
-	encoding_binary.BigEndian.PutUint64(votingPowerBytes, uint64(v.VotingPower))
+	binary.BigEndian.PutUint64(votingPowerBytes, uint64(v.VotingPower))
 
-	votingPowerFeltArray := crypto.Checksum128(votingPowerBytes)
+	votingPowerFeltArray := tmhash.Sum(votingPowerBytes)
 
 	publicKeyFelt := make([]byte, 32)
 	copy(publicKeyFelt[:32], v.PubKey.Bytes()[:32])
 
 	felts := append(publicKeyFelt, votingPowerFeltArray[:]...)
-	hash := crypto.ChecksumFelt(felts)
+	hash := tmhash.Sum(felts)
 
 	return hash
 }

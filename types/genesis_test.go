@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -9,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/crypto/stark"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmtime "github.com/tendermint/tendermint/libs/time"
 )
@@ -24,13 +23,13 @@ func TestGenesisBad(t *testing.T) {
 		[]byte(`{"chain_id":"chain","initial_height":"-1"}`), // negative initial height
 		// missing pub_key type
 		[]byte(
-			`{"validators":[{"pub_key":{"value":"AT/+8f10f86d337f7d1b98b43027e0b99164adaa06b03801c9686fc4643875ee25a7="},"power":"10","name":""}]}`,
+			`{"validators":[{"pub_key":{"value":"AT/+aaL1eB0477Mud9JMm8Sh8BIvOYlPGC9KkIUmFaE="},"power":"10","name":""}]}`,
 		),
 		// missing chain_id
 		[]byte(
 			`{"validators":[` +
 				`{"pub_key":{` +
-				`"type":"tendermint/PubKeyStark","value":"AT/+8f10f86d337f7d1b98b43027e0b99164adaa06b03801c9686fc4643875ee25a7="` +
+				`"type":"tendermint/PubKeyEd25519","value":"AT/+aaL1eB0477Mud9JMm8Sh8BIvOYlPGC9KkIUmFaE="` +
 				`},"power":"10","name":""}` +
 				`]}`,
 		),
@@ -38,7 +37,7 @@ func TestGenesisBad(t *testing.T) {
 		[]byte(
 			`{"chain_id": "Lorem ipsum dolor sit amet, consectetuer adipiscing", "validators": [` +
 				`{"pub_key":{` +
-				`"type":"tendermint/PubKeyStark","value":"AT/+8f10f86d337f7d1b98b43027e0b99164adaa06b03801c9686fc4643875ee25a7="` +
+				`"type":"tendermint/PubKeyEd25519","value":"AT/+aaL1eB0477Mud9JMm8Sh8BIvOYlPGC9KkIUmFaE="` +
 				`},"power":"10","name":""}` +
 				`]}`,
 		),
@@ -46,7 +45,7 @@ func TestGenesisBad(t *testing.T) {
 		[]byte(
 			`{"chain_id":"mychain", "validators":[` +
 				`{"address": "A", "pub_key":{` +
-				`"type":"tendermint/PubKeyStark","value":"AT/+8f10f86d337f7d1b98b43027e0b99164adaa06b03801c9686fc4643875ee25a7="` +
+				`"type":"tendermint/PubKeyEd25519","value":"AT/+aaL1eB0477Mud9JMm8Sh8BIvOYlPGC9KkIUmFaE="` +
 				`},"power":"10","name":""}` +
 				`]}`,
 		),
@@ -60,17 +59,6 @@ func TestGenesisBad(t *testing.T) {
 
 func TestGenesisGood(t *testing.T) {
 	// test a good one by raw json
-
-	var pv = stark.GenPrivKey()
-
-	var pb = pv.PubKey()
-	var pbb, _ = json.Marshal(pb)
-	var pbJSON = string(pbb)
-
-	var pbname = "\"" + stark.PubKeyName + "\""
-
-	// var name = "\"" + pb.Type() + "\""
-
 	genDocBytes := []byte(
 		`{
 			"genesis_time": "0001-01-01T00:00:00Z",
@@ -78,7 +66,7 @@ func TestGenesisGood(t *testing.T) {
 			"initial_height": "1000",
 			"consensus_params": null,
 			"validators": [{
-				"pub_key":{"type":` + pbname + `,"value":` + pbJSON + `},
+				"pub_key":{"type":"tendermint/PubKeyEd25519","value":"AT/+aaL1eB0477Mud9JMm8Sh8BIvOYlPGC9KkIUmFaE="},
 				"power":"10",
 				"name":""
 			}],
@@ -86,11 +74,10 @@ func TestGenesisGood(t *testing.T) {
 			"app_state":{"account_owner": "Bob"}
 		}`,
 	)
-
 	_, err := GenesisDocFromJSON(genDocBytes)
 	assert.NoError(t, err, "expected no error for good genDoc json")
 
-	pubkey := stark.GenPrivKey().PubKey()
+	pubkey := ed25519.GenPrivKey().PubKey()
 	// create a base gendoc from struct
 	baseGenDoc := &GenesisDoc{
 		ChainID:    "abc",
@@ -166,7 +153,7 @@ func TestGenesisValidatorHash(t *testing.T) {
 }
 
 func randomGenesisDoc() *GenesisDoc {
-	pubkey := stark.GenPrivKey().PubKey()
+	pubkey := ed25519.GenPrivKey().PubKey()
 	return &GenesisDoc{
 		GenesisTime:     tmtime.Now(),
 		ChainID:         "abc",

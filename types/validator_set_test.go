@@ -16,8 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/stark"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	tmmath "github.com/tendermint/tendermint/libs/math"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
@@ -47,9 +48,9 @@ func TestValidatorSetBasic(t *testing.T) {
 	assert.Zero(t, vset.Size())
 	assert.Equal(t, int64(0), vset.TotalVotingPower())
 	assert.Nil(t, vset.GetProposer())
-	assert.Equal(t, []byte{0x4, 0x9e, 0xe3, 0xeb, 0xa8, 0xc1, 0x60, 0x7, 0x0, 0xee, 0x1b, 0x87,
-		0xeb, 0x59, 0x9f, 0x16, 0x71, 0x6b, 0xb, 0x10, 0x22, 0x94, 0x77, 0x33, 0x55, 0x1f, 0xde,
-		0x40, 0x50, 0xca, 0x68, 0x4}, vset.Hash())
+	assert.Equal(t, []byte{0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4,
+		0xc8, 0x99, 0x6f, 0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c, 0xa4, 0x95,
+		0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55}, vset.Hash())
 	// add
 	val = randModuloValidator(vset.TotalVotingPower())
 	assert.NoError(t, vset.UpdateWithChangeSet([]*Validator{val}))
@@ -169,7 +170,7 @@ func BenchmarkValidatorSetCopy(b *testing.B) {
 	b.StopTimer()
 	vset := NewValidatorSet([]*Validator{})
 	for i := 0; i < 1000; i++ {
-		privKey := stark.GenPrivKey()
+		privKey := ed25519.GenPrivKey()
 		pubKey := privKey.PubKey()
 		val := NewValidator(pubKey, 10)
 		err := vset.UpdateWithChangeSet([]*Validator{val})
@@ -209,9 +210,9 @@ func TestProposerSelection1(t *testing.T) {
 }
 
 func TestProposerSelection2(t *testing.T) {
-	addr0 := append(make([]byte, crypto.AddressSize-1), 0)
-	addr1 := append(make([]byte, crypto.AddressSize-1), 1)
-	addr2 := append(make([]byte, crypto.AddressSize-1), 2)
+	addr0 := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	addr1 := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+	addr2 := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
 
 	// when all voting power is same, we go in order of addresses
 	val0, val1, val2 := newValidator(addr0, 100), newValidator(addr1, 100), newValidator(addr2, 100)
@@ -266,7 +267,7 @@ func TestProposerSelection2(t *testing.T) {
 	N := 1
 	for i := 0; i < 120*N; i++ {
 		prop := vals.GetProposer()
-		ii := prop.Address[crypto.AddressSize-1]
+		ii := prop.Address[19]
 		propCount[ii]++
 		vals.IncrementProposerPriority(1)
 	}
@@ -302,16 +303,16 @@ func TestProposerSelection2(t *testing.T) {
 
 func TestProposerSelection3(t *testing.T) {
 	vset := NewValidatorSet([]*Validator{
-		newValidator(append(make([]byte, crypto.AddressSize-1), 1), 1),
-		newValidator(append(make([]byte, crypto.AddressSize-1), 2), 1),
-		newValidator(append(make([]byte, crypto.AddressSize-1), 3), 1),
-		newValidator(append(make([]byte, crypto.AddressSize-1), 4), 1),
+		newValidator([]byte("avalidator_address12"), 1),
+		newValidator([]byte("bvalidator_address12"), 1),
+		newValidator([]byte("cvalidator_address12"), 1),
+		newValidator([]byte("dvalidator_address12"), 1),
 	})
 
 	proposerOrder := make([]*Validator, 4)
 	for i := 0; i < 4; i++ {
 		// need to give all validators to have keys
-		pk := stark.GenPrivKey().PubKey()
+		pk := ed25519.GenPrivKey().PubKey()
 		vset.Validators[i].PubKey = pk
 		proposerOrder[i] = vset.GetProposer()
 		vset.IncrementProposerPriority(1)
@@ -368,9 +369,9 @@ func newValidator(address []byte, power int64) *Validator {
 }
 
 func randPubKey() crypto.PubKey {
-	pubkey := stark.GenPrivKey().PubKey()
-
-	return pubkey
+	pubKey := make(ed25519.PubKey, ed25519.PubKeySize)
+	copy(pubKey, tmrand.Bytes(32))
+	return ed25519.PubKey(tmrand.Bytes(32))
 }
 
 func randModuloValidator(totalVotingPower int64) *Validator {
@@ -1525,7 +1526,7 @@ func BenchmarkUpdates(b *testing.B) {
 	}
 }
 
-func BenchmarkValidatorSet_VerifyCommit_stark(b *testing.B) { // nolint
+func BenchmarkValidatorSet_VerifyCommit_Ed25519(b *testing.B) {
 	for _, n := range []int{1, 8, 64, 1024} {
 		n := n
 		var (
@@ -1549,8 +1550,7 @@ func BenchmarkValidatorSet_VerifyCommit_stark(b *testing.B) { // nolint
 	}
 }
 
-func BenchmarkValidatorSet_VerifyCommitLight_stark(b *testing.B) { // nolint
-
+func BenchmarkValidatorSet_VerifyCommitLight_Ed25519(b *testing.B) {
 	for _, n := range []int{1, 8, 64, 1024} {
 		n := n
 		var (
@@ -1574,8 +1574,7 @@ func BenchmarkValidatorSet_VerifyCommitLight_stark(b *testing.B) { // nolint
 	}
 }
 
-func BenchmarkValidatorSet_VerifyCommitLightTrusting_stark(b *testing.B) {
-
+func BenchmarkValidatorSet_VerifyCommitLightTrusting_Ed25519(b *testing.B) {
 	for _, n := range []int{1, 8, 64, 1024} {
 		n := n
 		var (
@@ -1612,8 +1611,8 @@ func deterministicValidatorSet() (*ValidatorSet, []PrivValidator) {
 	)
 
 	for i := 0; i < 10; i++ {
-		// val, privValidator := DeterministicValidator(stark.PrivKey([]byte(deterministicKeys[i])))
-		val, privValidator := deterministicValidator(stark.GenPrivKeyFromSecret([]byte(fmt.Sprintf("key: %x", i))))
+		// val, privValidator := DeterministicValidator(ed25519.PrivKey([]byte(deterministicKeys[i])))
+		val, privValidator := deterministicValidator(ed25519.GenPrivKeyFromSecret([]byte(fmt.Sprintf("key: %x", i))))
 		valz[i] = val
 		privValidators[i] = privValidator
 	}

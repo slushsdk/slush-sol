@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"github.com/tendermint/tendermint/crypto/sr25519"
-	"github.com/tendermint/tendermint/crypto/stark"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmstrings "github.com/tendermint/tendermint/libs/strings"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
@@ -27,14 +26,12 @@ const (
 	ABCIPubKeyTypeEd25519   = ed25519.KeyType
 	ABCIPubKeyTypeSecp256k1 = secp256k1.KeyType
 	ABCIPubKeyTypeSr25519   = sr25519.KeyType
-	ABCIPubKeyTypeStark     = stark.KeyType
 )
 
 var ABCIPubKeyTypesToNames = map[string]string{
 	ABCIPubKeyTypeEd25519:   ed25519.PubKeyName,
 	ABCIPubKeyTypeSecp256k1: secp256k1.PubKeyName,
 	ABCIPubKeyTypeSr25519:   sr25519.PubKeyName,
-	ABCIPubKeyTypeStark:     stark.PubKeyName,
 }
 
 // ConsensusParams contains consensus critical parameters that determine the
@@ -91,7 +88,7 @@ func DefaultConsensusParams() *ConsensusParams {
 // DefaultBlockParams returns a default BlockParams.
 func DefaultBlockParams() BlockParams {
 	return BlockParams{
-		MaxBytes: 135000, // with 250byte txs, this means a bit less than 500 txs.
+		MaxBytes: 22020096, // 21MB
 		MaxGas:   -1,
 	}
 }
@@ -101,7 +98,7 @@ func DefaultEvidenceParams() EvidenceParams {
 	return EvidenceParams{
 		MaxAgeNumBlocks: 100000, // 27.8 hrs at 1block/s
 		MaxAgeDuration:  48 * time.Hour,
-		MaxBytes:        3800,
+		MaxBytes:        1048576, // 1MB
 	}
 }
 
@@ -109,7 +106,7 @@ func DefaultEvidenceParams() EvidenceParams {
 // only ed25519 pubkeys.
 func DefaultValidatorParams() ValidatorParams {
 	return ValidatorParams{
-		PubKeyTypes: []string{ABCIPubKeyTypeStark},
+		PubKeyTypes: []string{ABCIPubKeyTypeEd25519},
 	}
 }
 
@@ -186,6 +183,8 @@ func (params ConsensusParams) ValidateConsensusParams() error {
 // This allows the ConsensusParams to evolve more without breaking the block
 // protocol. No need for a Merkle tree here, just a small struct to hash.
 func (params ConsensusParams) HashConsensusParams() []byte {
+	hasher := tmhash.New()
+
 	hp := tmproto.HashedParams{
 		BlockMaxBytes: params.Block.MaxBytes,
 		BlockMaxGas:   params.Block.MaxGas,
@@ -196,9 +195,11 @@ func (params ConsensusParams) HashConsensusParams() []byte {
 		panic(err)
 	}
 
-	sum := crypto.Checksum128(bz)
-
-	return sum[:]
+	_, err = hasher.Write(bz)
+	if err != nil {
+		panic(err)
+	}
+	return hasher.Sum(nil)
 }
 
 func (params *ConsensusParams) Equals(params2 *ConsensusParams) bool {
