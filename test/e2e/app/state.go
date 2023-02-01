@@ -2,6 +2,7 @@
 package app
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -10,8 +11,6 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
-
-	"github.com/tendermint/tendermint/crypto"
 )
 
 const stateFileName = "app_state.json"
@@ -180,7 +179,7 @@ func hashItems(items map[string]string, height uint64) []byte {
 	}
 	sort.Strings(keys)
 
-	hasher := crypto.New128()
+	hasher := sha256.New()
 	var b [8]byte
 	binary.BigEndian.PutUint64(b[:], height)
 	_, _ = hasher.Write(b[:])
