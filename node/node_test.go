@@ -19,9 +19,8 @@ import (
 	"github.com/tendermint/tendermint/abci/example/kvstore"
 	"github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/pedersen"
-	"github.com/tendermint/tendermint/crypto/stark"
-
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/internal/evidence"
 	"github.com/tendermint/tendermint/internal/mempool"
 	mempoolv0 "github.com/tendermint/tendermint/internal/mempool/v0"
@@ -139,7 +138,7 @@ func TestNodeSetPrivValTCP(t *testing.T) {
 	defer os.RemoveAll(cfg.RootDir)
 	cfg.PrivValidator.ListenAddr = addr
 
-	dialer := privval.DialTCPFn(addr, 100*time.Millisecond, stark.GenPrivKey())
+	dialer := privval.DialTCPFn(addr, 100*time.Millisecond, ed25519.GenPrivKey())
 	dialerEndpoint := privval.NewSignerDialerEndpoint(
 		log.TestingLogger(),
 		dialer,
@@ -391,15 +390,12 @@ func TestMaxProposalBlockSize(t *testing.T) {
 
 	logger := log.TestingLogger()
 
-	const maxVotesCount = types.MaxVotesCount / 20
-
-	state, stateDB, _ := state(maxVotesCount, int64(1))
+	state, stateDB, _ := state(types.MaxVotesCount, int64(1))
 	stateStore := sm.NewStore(stateDB, sm.StoreOptions{
 		DiscardABCIResponses: false,
 	})
 	blockStore := store.NewBlockStore(dbm.NewMemDB())
-	const maxBytes int64 = 65536
-	const partSize uint32 = 2048
+	const maxBytes int64 = 1024 * 1024 * 2
 	state.ConsensusParams.Block.MaxBytes = maxBytes
 	proposerAddr, _ := state.Validators.GetByIndex(0)
 
@@ -415,7 +411,7 @@ func TestMaxProposalBlockSize(t *testing.T) {
 	mp.SetLogger(logger)
 
 	// fill the mempool with one txs just below the maximum size
-	txLength := int(types.MaxDataBytesNoEvidence(maxBytes, maxVotesCount))
+	txLength := int(types.MaxDataBytesNoEvidence(maxBytes, types.MaxVotesCount))
 	tx := tmrand.Bytes(txLength - 6) // to account for the varint
 	err = mp.CheckTx(context.Background(), tx, nil, mempool.TxInfo{})
 	assert.NoError(t, err)
@@ -437,10 +433,10 @@ func TestMaxProposalBlockSize(t *testing.T) {
 	)
 
 	blockID := types.BlockID{
-		Hash: crypto.Checksum128([]byte("blockID_hash")),
+		Hash: tmhash.Sum([]byte("blockID_hash")),
 		PartSetHeader: types.PartSetHeader{
 			Total: math.MaxInt32,
-			Hash:  crypto.Checksum128([]byte("blockID_part_set_header_hash")),
+			Hash:  tmhash.Sum([]byte("blockID_part_set_header_hash")),
 		},
 	}
 
@@ -449,8 +445,8 @@ func TestMaxProposalBlockSize(t *testing.T) {
 	state.LastBlockID = blockID
 	state.LastBlockHeight = math.MaxInt64 - 1
 	state.LastBlockTime = timestamp
-	state.LastResultsHash = crypto.Checksum128([]byte("last_results_hash"))
-	state.AppHash = crypto.Checksum128([]byte("app_hash"))
+	state.LastResultsHash = tmhash.Sum([]byte("last_results_hash"))
+	state.AppHash = tmhash.Sum([]byte("app_hash"))
 	state.Version.Consensus.Block = math.MaxInt64
 	state.Version.Consensus.App = math.MaxInt64
 	maxChainID := ""
@@ -461,9 +457,9 @@ func TestMaxProposalBlockSize(t *testing.T) {
 
 	cs := types.CommitSig{
 		BlockIDFlag:      types.BlockIDFlagNil,
-		ValidatorAddress: crypto.AddressHash(pedersen.RandFeltBytes(32)),
+		ValidatorAddress: crypto.AddressHash([]byte("validator_address")),
 		Timestamp:        timestamp,
-		Signature:        pedersen.RandFeltBytes(32),
+		Signature:        crypto.CRandBytes(types.MaxSignatureSize),
 	}
 
 	commit := &types.Commit{
@@ -473,7 +469,7 @@ func TestMaxProposalBlockSize(t *testing.T) {
 	}
 
 	// add maximum amount of signatures to a single commit
-	for i := 0; i < maxVotesCount; i++ {
+	for i := 0; i < types.MaxVotesCount; i++ {
 		commit.Signatures = append(commit.Signatures, cs)
 	}
 
@@ -491,9 +487,9 @@ func TestMaxProposalBlockSize(t *testing.T) {
 
 	// require that the header and commit be the max possible size
 	require.Equal(t, int64(pb.Header.Size()), types.MaxHeaderBytes)
-	require.Equal(t, int64(pb.LastCommit.Size()), types.MaxCommitBytes(maxVotesCount))
+	require.Equal(t, int64(pb.LastCommit.Size()), types.MaxCommitBytes(types.MaxVotesCount))
 	// make sure that the block is less than the max possible size
-	assert.LessOrEqual(t, int64(pb.Size()), maxBytes)
+	assert.Equal(t, int64(pb.Size()), maxBytes)
 	// because of the proto overhead we expect the part set bytes to be equal or
 	// less than the pb block size
 	assert.LessOrEqual(t, partSet.ByteSize(), int64(pb.Size()))

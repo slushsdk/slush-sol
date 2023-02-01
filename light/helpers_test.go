@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/pedersen"
-	"github.com/tendermint/tendermint/crypto/stark"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmtime "github.com/tendermint/tendermint/libs/time"
 	provider_mocks "github.com/tendermint/tendermint/light/provider/mocks"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -27,7 +27,7 @@ type privKeys []crypto.PrivKey
 func genPrivKeys(n int) privKeys {
 	res := make(privKeys, n)
 	for i := range res {
-		res[i] = stark.GenPrivKey()
+		res[i] = ed25519.GenPrivKey()
 	}
 	return res
 }
@@ -82,7 +82,7 @@ func (pkz privKeys) signHeader(header *types.Header, valSet *types.ValidatorSet,
 
 	blockID := types.BlockID{
 		Hash:          header.Hash(),
-		PartSetHeader: types.PartSetHeader{Total: 1, Hash: pedersen.RandFeltBytes(crypto.HashSize)},
+		PartSetHeader: types.PartSetHeader{Total: 1, Hash: crypto.CRandBytes(32)},
 	}
 
 	// Fill in the votes we want.
@@ -239,5 +239,5 @@ func mockNodeFromHeadersAndVals(headers map[int64]*types.SignedHeader,
 }
 
 func hash(s string) []byte {
-	return crypto.Checksum128([]byte(s))
+	return tmhash.Sum([]byte(s))
 }

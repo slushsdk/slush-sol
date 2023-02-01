@@ -10,7 +10,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/pedersen"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/internal/test/factory"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
 	"github.com/tendermint/tendermint/types"
@@ -192,14 +192,14 @@ func randLightBlock(height int64) *types.LightBlock {
 				Height:             height,
 				Time:               time.Now(),
 				LastBlockID:        types.BlockID{},
-				LastCommitHash:     pedersen.RandFeltBytes(crypto.HashSize),
-				DataHash:           pedersen.RandFeltBytes(crypto.HashSize),
-				ValidatorsHash:     pedersen.RandFeltBytes(crypto.HashSize),
-				NextValidatorsHash: pedersen.RandFeltBytes(crypto.HashSize),
-				ConsensusHash:      pedersen.RandFeltBytes(crypto.HashSize),
-				AppHash:            pedersen.RandFeltBytes(crypto.HashSize),
-				LastResultsHash:    pedersen.RandFeltBytes(crypto.HashSize),
-				EvidenceHash:       pedersen.RandFeltBytes(crypto.HashSize),
+				LastCommitHash:     crypto.CRandBytes(tmhash.Size),
+				DataHash:           crypto.CRandBytes(tmhash.Size),
+				ValidatorsHash:     crypto.CRandBytes(tmhash.Size),
+				NextValidatorsHash: crypto.CRandBytes(tmhash.Size),
+				ConsensusHash:      crypto.CRandBytes(tmhash.Size),
+				AppHash:            crypto.CRandBytes(tmhash.Size),
+				LastResultsHash:    crypto.CRandBytes(tmhash.Size),
+				EvidenceHash:       crypto.CRandBytes(tmhash.Size),
 				ProposerAddress:    crypto.CRandBytes(crypto.AddressSize),
 			},
 			Commit: &types.Commit{},

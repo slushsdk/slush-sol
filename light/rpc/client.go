@@ -445,7 +445,7 @@ func (c *Client) BlockResults(ctx context.Context, height *int64) (*coretypes.Re
 	}
 
 	// Build a Merkle tree out of the above 3 binary slices.
-	rH := merkle.HashFromByteSlicesInt128([][]byte{bbeBytes, results.Hash(), ebeBytes})
+	rH := merkle.HashFromByteSlices([][]byte{bbeBytes, results.Hash(), ebeBytes})
 
 	// Verify block results.
 	if !bytes.Equal(rH, trustedBlock.LastResultsHash) {
