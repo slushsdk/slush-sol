@@ -9,7 +9,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/tmhash"
+
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/internal/state"
 	"github.com/tendermint/tendermint/privval"
@@ -150,7 +151,7 @@ func (th *TestHarness) Run() {
 	for acceptRetries := th.acceptRetries; acceptRetries > 0; acceptRetries-- {
 		th.logger.Info("Attempting to accept incoming connection", "acceptRetries", acceptRetries)
 
-		if err := th.signerClient.WaitForConnection(100 * time.Millisecond); err != nil {
+		if err := th.signerClient.WaitForConnection(10 * time.Millisecond); err != nil {
 			// if it wasn't a timeout error
 			if _, ok := err.(timeoutError); !ok {
 				th.logger.Error("Failed to start listener", "err", err)
@@ -217,7 +218,7 @@ func (th *TestHarness) TestPublicKey() error {
 func (th *TestHarness) TestSignProposal() error {
 	th.logger.Info("TEST: Signing of proposals")
 	// sha256 hash of "hash"
-	hash := crypto.ChecksumFelt([]byte("hash"))
+	hash := tmhash.Sum([]byte("hash"))
 	prop := &types.Proposal{
 		Type:     tmproto.ProposalType,
 		Height:   100,
@@ -265,7 +266,7 @@ func (th *TestHarness) TestSignVote() error {
 	th.logger.Info("TEST: Signing of votes")
 	for _, voteType := range voteTypes {
 		th.logger.Info("Testing vote type", "type", voteType)
-		hash := crypto.ChecksumFelt([]byte("hash"))
+		hash := tmhash.Sum([]byte("hash"))
 		vote := &types.Vote{
 			Type:   voteType,
 			Height: 101,
@@ -278,7 +279,7 @@ func (th *TestHarness) TestSignVote() error {
 				},
 			},
 			ValidatorIndex:   0,
-			ValidatorAddress: crypto.AddressHash([]byte("addr")),
+			ValidatorAddress: tmhash.SumTruncated([]byte("addr")),
 			Timestamp:        time.Now(),
 		}
 		v := vote.ToProto()
