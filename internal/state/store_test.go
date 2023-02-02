@@ -9,10 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto/stark"
-
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	sm "github.com/tendermint/tendermint/internal/state"
 	"github.com/tendermint/tendermint/internal/test/factory"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmstate "github.com/tendermint/tendermint/proto/tendermint/state"
 	"github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
@@ -194,11 +195,11 @@ func TestPruneStates(t *testing.T) {
 			stateStore := sm.NewStore(db, sm.StoreOptions{
 				DiscardABCIResponses: false,
 			})
-			pk := stark.GenPrivKey().PubKey()
+			pk := ed25519.GenPrivKey().PubKey()
 
 			// Generate a bunch of state data. Validators change for heights ending with 3, and
 			// parameters when ending with 5.
-			validator := &types.Validator{Address: stark.GenPrivKey().PubKey().Address(), VotingPower: 100, PubKey: pk}
+			validator := &types.Validator{Address: tmrand.Bytes(crypto.AddressSize), VotingPower: 100, PubKey: pk}
 			validatorSet := &types.ValidatorSet{
 				Validators: []*types.Validator{validator},
 				Proposer:   validator,
@@ -313,7 +314,7 @@ func TestABCIResponsesResultsHash(t *testing.T) {
 	proof := results.ProveResult(0)
 	bz, err := results[0].Marshal()
 	require.NoError(t, err)
-	assert.NoError(t, proof.VerifyInt128(root, bz))
+	assert.NoError(t, proof.Verify(root, bz))
 }
 
 func TestLastABCIResponses(t *testing.T) {

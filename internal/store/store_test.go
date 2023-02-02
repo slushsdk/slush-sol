@@ -14,11 +14,10 @@ import (
 
 	"github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/pedersen"
-	"github.com/tendermint/tendermint/crypto/stark"
 	sm "github.com/tendermint/tendermint/internal/state"
 	"github.com/tendermint/tendermint/internal/state/test/factory"
 	"github.com/tendermint/tendermint/libs/log"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmtime "github.com/tendermint/tendermint/libs/time"
 	"github.com/tendermint/tendermint/types"
 	"github.com/tendermint/tendermint/version"
@@ -32,7 +31,7 @@ type cleanupFunc func()
 func makeTestCommit(height int64, timestamp time.Time) *types.Commit {
 	commitSigs := []types.CommitSig{{
 		BlockIDFlag:      types.BlockIDFlagCommit,
-		ValidatorAddress: stark.GenPrivKey().PubKey().Address(),
+		ValidatorAddress: tmrand.Bytes(crypto.AddressSize),
 		Timestamp:        timestamp,
 		Signature:        []byte("Signature"),
 	}}
@@ -40,8 +39,8 @@ func makeTestCommit(height int64, timestamp time.Time) *types.Commit {
 		height,
 		0,
 		types.BlockID{
-			Hash:          pedersen.RandFeltBytes(crypto.HashSize),
-			PartSetHeader: types.PartSetHeader{Hash: pedersen.RandFeltBytes(crypto.HashSize), Total: 2},
+			Hash:          crypto.CRandBytes(32),
+			PartSetHeader: types.PartSetHeader{Hash: crypto.CRandBytes(32), Total: 2},
 		},
 		commitSigs)
 }
@@ -120,7 +119,7 @@ func TestBlockStoreSaveLoadBlock(t *testing.T) {
 		Height:          1,
 		ChainID:         "block_test",
 		Time:            tmtime.Now(),
-		ProposerAddress: stark.GenPrivKey().PubKey().Address(),
+		ProposerAddress: tmrand.Bytes(crypto.AddressSize),
 	}
 
 	// End of setup, test data
@@ -156,7 +155,7 @@ func TestBlockStoreSaveLoadBlock(t *testing.T) {
 					Height:          5,
 					ChainID:         "block_test",
 					Time:            tmtime.Now(),
-					ProposerAddress: stark.GenPrivKey().PubKey().Address()},
+					ProposerAddress: tmrand.Bytes(crypto.AddressSize)},
 				makeTestCommit(5, tmtime.Now()),
 			),
 			parts:      validPartSet,
@@ -458,7 +457,7 @@ func TestLoadBlockMeta(t *testing.T) {
 	// 3. A good blockMeta serialized and saved to the DB should be retrievable
 	meta := &types.BlockMeta{Header: types.Header{
 		Version: version.Consensus{
-			Block: version.BlockProtocol, App: 0}, Height: 1, ProposerAddress: stark.GenPrivKey().PubKey().Address()}}
+			Block: version.BlockProtocol, App: 0}, Height: 1, ProposerAddress: tmrand.Bytes(crypto.AddressSize)}}
 	pbm := meta.ToProto()
 	err = db.Set(blockMetaKey(height), mustEncode(pbm))
 	require.NoError(t, err)

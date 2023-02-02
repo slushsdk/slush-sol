@@ -1,18 +1,18 @@
 package statesync
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/rand"
 	"sort"
 	"strings"
 
-	"github.com/tendermint/tendermint/crypto"
 	tmsync "github.com/tendermint/tendermint/internal/libs/sync"
 	"github.com/tendermint/tendermint/types"
 )
 
 // snapshotKey is a snapshot key used for lookups.
-type snapshotKey [crypto.HashSize]byte
+type snapshotKey [sha256.Size]byte
 
 // snapshot contains data about a snapshot.
 type snapshot struct {
@@ -30,8 +30,7 @@ type snapshot struct {
 // non-deterministic manner. All fields must be equal for the snapshot to be considered the same.
 func (s *snapshot) Key() snapshotKey {
 	// Hash.Write() never returns an error.
-	// Slush Todo: does this require compatibility with Cairo, so do we need hashes to be refactored?
-	hasher := crypto.New128()
+	hasher := sha256.New()
 	hasher.Write([]byte(fmt.Sprintf("%v:%v:%v", s.Height, s.Format, s.Chunks)))
 	hasher.Write(s.Hash)
 	hasher.Write(s.Metadata)

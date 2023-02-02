@@ -13,9 +13,9 @@ import (
 	abciclient "github.com/tendermint/tendermint/abci/client"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/encoding"
-	"github.com/tendermint/tendermint/crypto/pedersen"
-	"github.com/tendermint/tendermint/crypto/stark"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	mmock "github.com/tendermint/tendermint/internal/mempool/mock"
 	"github.com/tendermint/tendermint/internal/proxy"
 	sm "github.com/tendermint/tendermint/internal/state"
@@ -140,22 +140,22 @@ func TestBeginBlockByzantineValidators(t *testing.T) {
 
 	defaultEvidenceTime := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
 	privVal := privVals[state.Validators.Validators[0].Address.String()]
-	blockID := makeBlockID(pedersen.RandFeltBytes(32), 1000, pedersen.RandFeltBytes(32))
+	blockID := makeBlockID([]byte("headerhash"), 1000, []byte("partshash"))
 	header := &types.Header{
 		Version:            version.Consensus{Block: version.BlockProtocol, App: 1},
 		ChainID:            state.ChainID,
 		Height:             10,
 		Time:               defaultEvidenceTime,
 		LastBlockID:        blockID,
-		LastCommitHash:     pedersen.RandFeltBytes(crypto.HashSize),
-		DataHash:           pedersen.RandFeltBytes(crypto.HashSize),
+		LastCommitHash:     crypto.CRandBytes(tmhash.Size),
+		DataHash:           crypto.CRandBytes(tmhash.Size),
 		ValidatorsHash:     state.Validators.Hash(),
 		NextValidatorsHash: state.Validators.Hash(),
-		ConsensusHash:      pedersen.RandFeltBytes(crypto.HashSize),
-		AppHash:            pedersen.RandFeltBytes(crypto.HashSize),
-		LastResultsHash:    pedersen.RandFeltBytes(crypto.HashSize),
-		EvidenceHash:       pedersen.RandFeltBytes(crypto.HashSize),
-		ProposerAddress:    pedersen.RandFeltBytes(crypto.AddressSize),
+		ConsensusHash:      crypto.CRandBytes(tmhash.Size),
+		AppHash:            crypto.CRandBytes(tmhash.Size),
+		LastResultsHash:    crypto.CRandBytes(tmhash.Size),
+		EvidenceHash:       crypto.CRandBytes(tmhash.Size),
+		ProposerAddress:    crypto.CRandBytes(crypto.AddressSize),
 	}
 
 	// we don't need to worry about validating the evidence as long as they pass validate basic
@@ -165,9 +165,9 @@ func TestBeginBlockByzantineValidators(t *testing.T) {
 		ConflictingBlock: &types.LightBlock{
 			SignedHeader: &types.SignedHeader{
 				Header: header,
-				Commit: types.NewCommit(10, 0, makeBlockID(header.Hash(), 100, pedersen.RandFeltBytes(32)), []types.CommitSig{{
+				Commit: types.NewCommit(10, 0, makeBlockID(header.Hash(), 100, []byte("partshash")), []types.CommitSig{{
 					BlockIDFlag:      types.BlockIDFlagNil,
-					ValidatorAddress: crypto.AddressHash(pedersen.RandFeltBytes(32)),
+					ValidatorAddress: crypto.AddressHash([]byte("validator_address")),
 					Timestamp:        defaultEvidenceTime,
 					Signature:        crypto.CRandBytes(types.MaxSignatureSize),
 				}}),
@@ -222,14 +222,14 @@ func TestBeginBlockByzantineValidators(t *testing.T) {
 }
 
 func TestValidateValidatorUpdates(t *testing.T) {
-	pubkey1 := stark.GenPrivKey().PubKey()
-	pubkey2 := stark.GenPrivKey().PubKey()
+	pubkey1 := ed25519.GenPrivKey().PubKey()
+	pubkey2 := ed25519.GenPrivKey().PubKey()
 	pk1, err := encoding.PubKeyToProto(pubkey1)
 	assert.NoError(t, err)
 	pk2, err := encoding.PubKeyToProto(pubkey2)
 	assert.NoError(t, err)
 
-	defaultValidatorParams := types.ValidatorParams{PubKeyTypes: []string{types.ABCIPubKeyTypeStark}}
+	defaultValidatorParams := types.ValidatorParams{PubKeyTypes: []string{types.ABCIPubKeyTypeEd25519}}
 
 	testCases := []struct {
 		name string
@@ -279,9 +279,9 @@ func TestValidateValidatorUpdates(t *testing.T) {
 }
 
 func TestUpdateValidators(t *testing.T) {
-	pubkey1 := stark.GenPrivKey().PubKey()
+	pubkey1 := ed25519.GenPrivKey().PubKey()
 	val1 := types.NewValidator(pubkey1, 10)
-	pubkey2 := stark.GenPrivKey().PubKey()
+	pubkey2 := ed25519.GenPrivKey().PubKey()
 	val2 := types.NewValidator(pubkey2, 20)
 
 	pk, err := encoding.PubKeyToProto(pubkey1)
@@ -392,7 +392,7 @@ func TestEndBlockValidatorUpdates(t *testing.T) {
 	block := sf.MakeBlock(state, 1, new(types.Commit))
 	blockID := types.BlockID{Hash: block.Hash(), PartSetHeader: block.MakePartSet(testPartSize).Header()}
 
-	pubkey := stark.GenPrivKey().PubKey()
+	pubkey := ed25519.GenPrivKey().PubKey()
 	pk, err := encoding.PubKeyToProto(pubkey)
 	require.NoError(t, err)
 	app.ValidatorUpdates = []abci.ValidatorUpdate{
@@ -466,8 +466,8 @@ func TestEndBlockValidatorUpdatesResultingInEmptySet(t *testing.T) {
 
 func makeBlockID(hash []byte, partSetSize uint32, partSetHash []byte) types.BlockID {
 	var (
-		h   = make([]byte, crypto.HashSize)
-		psH = make([]byte, crypto.HashSize)
+		h   = make([]byte, tmhash.Size)
+		psH = make([]byte, tmhash.Size)
 	)
 	copy(h, hash)
 	copy(psH, partSetHash)

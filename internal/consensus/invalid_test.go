@@ -8,9 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/internal/p2p"
 	"github.com/tendermint/tendermint/libs/bytes"
-
-	"github.com/tendermint/tendermint/crypto/pedersen"
-
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmcons "github.com/tendermint/tendermint/proto/tendermint/consensus"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	"github.com/tendermint/tendermint/types"
@@ -87,7 +85,7 @@ func invalidDoPrevoteFunc(t *testing.T, height int64, round int32, cs *State, r 
 		valIndex, _ := cs.Validators.GetByAddress(addr)
 
 		// precommit a random block
-		blockHash := bytes.HexBytes(pedersen.RandFeltBytes(32))
+		blockHash := bytes.HexBytes(tmrand.Bytes(32))
 		precommit := &types.Vote{
 			ValidatorAddress: addr,
 			ValidatorIndex:   valIndex,
@@ -97,7 +95,7 @@ func invalidDoPrevoteFunc(t *testing.T, height int64, round int32, cs *State, r 
 			Type:             tmproto.PrecommitType,
 			BlockID: types.BlockID{
 				Hash:          blockHash,
-				PartSetHeader: types.PartSetHeader{Total: 1, Hash: pedersen.RandFeltBytes(32)}},
+				PartSetHeader: types.PartSetHeader{Total: 1, Hash: tmrand.Bytes(32)}},
 		}
 
 		p := precommit.ToProto()

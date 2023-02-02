@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/tendermint/abci/example/kvstore"
-	"github.com/tendermint/tendermint/crypto/pedersen"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	cstypes "github.com/tendermint/tendermint/internal/consensus/types"
 	p2pmock "github.com/tendermint/tendermint/internal/p2p/mock"
 	"github.com/tendermint/tendermint/libs/log"
@@ -2020,7 +2020,7 @@ func TestStateOutputVoteStats(t *testing.T) {
 	// create dummy peer
 	peer := p2pmock.NewPeer(nil)
 
-	randBytes := pedersen.RandFeltBytes(32)
+	randBytes := tmrand.Bytes(tmhash.Size)
 
 	vote := signVote(vss[1], config, tmproto.PrecommitType, randBytes, types.PartSetHeader{})
 
@@ -2057,7 +2057,7 @@ func TestSignSameVoteTwice(t *testing.T) {
 		setReactor.OnStop()
 	}()
 
-	randBytes := pedersen.RandFeltBytes(32)
+	randBytes := tmrand.Bytes(tmhash.Size)
 
 	vote := signVote(vss[1],
 		config,
