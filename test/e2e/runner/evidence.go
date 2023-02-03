@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/pedersen"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/internal/test/factory"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	"github.com/tendermint/tendermint/privval"
@@ -169,7 +169,7 @@ func generateLightClientAttackEvidence(
 	header.ValidatorsHash = conflictingVals.Hash()
 
 	// create a commit for the forged header
-	blockID := makeBlockID(header.Hash(), 1000, pedersen.RandFeltBytes(32))
+	blockID := makeBlockID(header.Hash(), 1000, []byte("partshash"))
 	voteSet := types.NewVoteSet(chainID, forgedHeight, 0, tmproto.SignedMsgType(2), conflictingVals)
 	commit, err := factory.MakeCommit(blockID, forgedHeight, 0, voteSet, pv, forgedTime)
 	if err != nil {
@@ -256,27 +256,27 @@ func makeHeaderRandom(chainID string, height int64) *types.Header {
 		ChainID:            chainID,
 		Height:             height,
 		Time:               time.Now(),
-		LastBlockID:        makeBlockID(pedersen.RandFeltBytes(32), 1000, pedersen.RandFeltBytes(32)),
-		LastCommitHash:     pedersen.RandFeltBytes(crypto.HashSize),
-		DataHash:           pedersen.RandFeltBytes(crypto.HashSize),
-		ValidatorsHash:     pedersen.RandFeltBytes(crypto.HashSize),
-		NextValidatorsHash: pedersen.RandFeltBytes(crypto.HashSize),
-		ConsensusHash:      pedersen.RandFeltBytes(crypto.HashSize),
-		AppHash:            pedersen.RandFeltBytes(crypto.HashSize),
-		LastResultsHash:    pedersen.RandFeltBytes(crypto.HashSize),
-		EvidenceHash:       pedersen.RandFeltBytes(crypto.HashSize),
+		LastBlockID:        makeBlockID([]byte("headerhash"), 1000, []byte("partshash")),
+		LastCommitHash:     crypto.CRandBytes(tmhash.Size),
+		DataHash:           crypto.CRandBytes(tmhash.Size),
+		ValidatorsHash:     crypto.CRandBytes(tmhash.Size),
+		NextValidatorsHash: crypto.CRandBytes(tmhash.Size),
+		ConsensusHash:      crypto.CRandBytes(tmhash.Size),
+		AppHash:            crypto.CRandBytes(tmhash.Size),
+		LastResultsHash:    crypto.CRandBytes(tmhash.Size),
+		EvidenceHash:       crypto.CRandBytes(tmhash.Size),
 		ProposerAddress:    crypto.CRandBytes(crypto.AddressSize),
 	}
 }
 
 func makeRandomBlockID() types.BlockID {
-	return makeBlockID(pedersen.RandFeltBytes(crypto.HashSize), 100, pedersen.RandFeltBytes(crypto.HashSize))
+	return makeBlockID(crypto.CRandBytes(tmhash.Size), 100, crypto.CRandBytes(tmhash.Size))
 }
 
 func makeBlockID(hash []byte, partSetSize uint32, partSetHash []byte) types.BlockID {
 	var (
-		h   = make([]byte, crypto.HashSize)
-		psH = make([]byte, crypto.HashSize)
+		h   = make([]byte, tmhash.Size)
+		psH = make([]byte, tmhash.Size)
 	)
 	copy(h, hash)
 	copy(psH, partSetHash)

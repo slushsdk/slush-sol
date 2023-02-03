@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/pedersen"
-	"github.com/tendermint/tendermint/crypto/stark"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmjson "github.com/tendermint/tendermint/libs/json"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmtime "github.com/tendermint/tendermint/libs/time"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	"github.com/tendermint/tendermint/types"
@@ -59,7 +59,7 @@ func TestResetValidator(t *testing.T) {
 	// test vote
 	height, round := int64(10), int32(1)
 	voteType := tmproto.PrevoteType
-	randBytes := pedersen.RandFeltBytes(crypto.HashSize)
+	randBytes := tmrand.Bytes(tmhash.Size)
 	blockID := types.BlockID{Hash: randBytes, PartSetHeader: types.PartSetHeader{}}
 	vote := newVote(privVal.Key.Address, 0, height, round, voteType, blockID)
 	err = privVal.SignVote(context.Background(), "mychainid", vote.ToProto())
@@ -127,7 +127,7 @@ func TestUnmarshalValidatorKey(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 
 	// create some fixed values
-	privKey := stark.GenPrivKey()
+	privKey := ed25519.GenPrivKey()
 	pubKey := privKey.PubKey()
 	addr := pubKey.Address()
 	pubBytes := pubKey.Bytes()
@@ -138,11 +138,11 @@ func TestUnmarshalValidatorKey(t *testing.T) {
 	serialized := fmt.Sprintf(`{
   "address": "%s",
   "pub_key": {
-    "type": "tendermint/PubKeyStark",
+    "type": "tendermint/PubKeyEd25519",
     "value": "%s"
   },
   "priv_key": {
-    "type": "tendermint/PrivKeyStark",
+    "type": "tendermint/PrivKeyEd25519",
     "value": "%s"
   }
 }`, addr, pubB64, privB64)
@@ -173,8 +173,8 @@ func TestSignVote(t *testing.T) {
 	privVal, err := GenFilePV(tempKeyFile.Name(), tempStateFile.Name(), "")
 	require.NoError(t, err)
 
-	randbytes := pedersen.RandFeltBytes(32)
-	randbytes2 := pedersen.RandFeltBytes(32)
+	randbytes := tmrand.Bytes(tmhash.Size)
+	randbytes2 := tmrand.Bytes(tmhash.Size)
 
 	block1 := types.BlockID{Hash: randbytes,
 		PartSetHeader: types.PartSetHeader{Total: 5, Hash: randbytes}}
@@ -227,8 +227,8 @@ func TestSignProposal(t *testing.T) {
 	privVal, err := GenFilePV(tempKeyFile.Name(), tempStateFile.Name(), "")
 	require.NoError(t, err)
 
-	randbytes := pedersen.RandFeltBytes(32)
-	randbytes2 := pedersen.RandFeltBytes(32)
+	randbytes := tmrand.Bytes(tmhash.Size)
+	randbytes2 := tmrand.Bytes(tmhash.Size)
 
 	block1 := types.BlockID{Hash: randbytes,
 		PartSetHeader: types.PartSetHeader{Total: 5, Hash: randbytes}}
@@ -275,7 +275,7 @@ func TestDifferByTimestamp(t *testing.T) {
 
 	privVal, err := GenFilePV(tempKeyFile.Name(), tempStateFile.Name(), "")
 	require.NoError(t, err)
-	randbytes := pedersen.RandFeltBytes(32)
+	randbytes := tmrand.Bytes(tmhash.Size)
 	block1 := types.BlockID{Hash: randbytes, PartSetHeader: types.PartSetHeader{Total: 5, Hash: randbytes}}
 	height, round := int64(10), int32(1)
 	chainID := "mychainid"

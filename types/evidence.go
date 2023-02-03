@@ -11,11 +11,10 @@ import (
 	"time"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-
 	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/pedersen"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmjson "github.com/tendermint/tendermint/libs/json"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
@@ -107,7 +106,7 @@ func (dve *DuplicateVoteEvidence) Bytes() []byte {
 
 // Hash returns the hash of the evidence.
 func (dve *DuplicateVoteEvidence) Hash() []byte {
-	return crypto.Checksum128(dve.Bytes())
+	return tmhash.Sum(dve.Bytes())
 }
 
 // Height returns the height of the infraction
@@ -351,12 +350,19 @@ func (l *LightClientAttackEvidence) ConflictingHeaderIsInvalid(trustedHeader *He
 func (l *LightClientAttackEvidence) Hash() []byte {
 	buf := make([]byte, binary.MaxVarintLen64)
 	binary.BigEndian.PutUint64(buf, uint64(l.CommonHeight))
-	commonHeightHash := crypto.Checksum128(buf)
+	commonHeightHash := tmhash.Sum(buf)
 
-	bz := make([]byte, 2*crypto.HashSize)
-	copy(bz[:crypto.HashSize-1], l.ConflictingBlock.Hash().Bytes())
-	copy(bz[crypto.HashSize:], commonHeightHash)
-	return crypto.ChecksumFelt(bz)
+	bz := make([]byte, 2*tmhash.Size)
+	copy(bz[:tmhash.Size-1], l.ConflictingBlock.Hash().Bytes())
+	copy(bz[tmhash.Size:], commonHeightHash)
+	return tmhash.Sum(bz)
+
+	// original v0.35.x code
+	// n := binary.PutVarint(buf, l.CommonHeight)
+	// bz := make([]byte, tmhash.Size+n)
+	// copy(bz[:tmhash.Size-1], l.ConflictingBlock.Hash().Bytes())
+	// copy(bz[tmhash.Size:], buf)
+	// return tmhash.Sum(bz)
 }
 
 // Height returns the last height at which the primary provider and witness provider had the same header.
@@ -369,10 +375,10 @@ func (l *LightClientAttackEvidence) Height() int64 {
 // String returns a string representation of LightClientAttackEvidence
 func (l *LightClientAttackEvidence) String() string {
 	return fmt.Sprintf(`LightClientAttackEvidence{
-		ConflictingBlock: %v, 
-		CommonHeight: %d, 
-		ByzatineValidators: %v, 
-		TotalVotingPower: %d, 
+		ConflictingBlock: %v,
+		CommonHeight: %d,
+		ByzatineValidators: %v,
+		TotalVotingPower: %d,
 		Timestamp: %v}#%X`,
 		l.ConflictingBlock.String(), l.CommonHeight, l.ByzantineValidators,
 		l.TotalVotingPower, l.Timestamp, l.Hash())
@@ -559,7 +565,7 @@ func (evl EvidenceList) Hash() []byte {
 		// may cause different hashes
 		evidenceBzs[i] = evl[i].Bytes()
 	}
-	return merkle.HashFromByteSlicesInt128(evidenceBzs)
+	return merkle.HashFromByteSlices(evidenceBzs)
 }
 
 func (evl EvidenceList) String() string {
@@ -715,10 +721,10 @@ func makeMockVote(height int64, round, index int32, addr Address,
 
 func randBlockID() BlockID {
 	return BlockID{
-		Hash: pedersen.RandFeltBytes(crypto.HashSize),
+		Hash: tmrand.Bytes(tmhash.Size),
 		PartSetHeader: PartSetHeader{
 			Total: 1,
-			Hash:  pedersen.RandFeltBytes(crypto.HashSize),
+			Hash:  tmrand.Bytes(tmhash.Size),
 		},
 	}
 }

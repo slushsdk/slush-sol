@@ -2,12 +2,12 @@ package types
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 
-	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/pedersen"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
@@ -18,10 +18,10 @@ import (
 type Tx []byte
 
 // Key produces a fixed-length key for use in indexing.
-func (tx Tx) Key() TxKey { return pedersen.Sum128(tx) }
+func (tx Tx) Key() TxKey { return sha256.Sum256(tx) }
 
 // Hash computes the TMHASH hash of the wire encoded transaction.
-func (tx Tx) Hash() []byte { return crypto.Checksum128(tx) }
+func (tx Tx) Hash() []byte { return tmhash.Sum(tx) }
 
 // String returns the hex-encoded transaction as a string.
 func (tx Tx) String() string { return fmt.Sprintf("Tx{%X}", []byte(tx)) }
@@ -38,7 +38,7 @@ func (txs Txs) Hash() []byte {
 	for i := 0; i < len(txs); i++ {
 		txBzs[i] = txs[i].Hash()
 	}
-	return merkle.HashFromByteSlicesInt128(txBzs)
+	return merkle.HashFromByteSlices(txBzs)
 }
 
 // Index returns the index of this transaction in the list, or -1 if not found
@@ -70,7 +70,7 @@ func (txs Txs) Proof(i int) TxProof {
 	for i := 0; i < l; i++ {
 		bzs[i] = txs[i].Hash()
 	}
-	root, proofs := merkle.ProofsFromByteSlicesInt128(bzs)
+	root, proofs := merkle.ProofsFromByteSlices(bzs)
 
 	return TxProof{
 		RootHash: root,
@@ -103,7 +103,7 @@ func (tp TxProof) Validate(dataHash []byte) error {
 	if tp.Proof.Total <= 0 {
 		return errors.New("proof total must be positive")
 	}
-	valid := tp.Proof.VerifyInt128(tp.RootHash, tp.Leaf())
+	valid := tp.Proof.Verify(tp.RootHash, tp.Leaf())
 	if valid != nil {
 		return errors.New("proof is not internally consistent")
 	}

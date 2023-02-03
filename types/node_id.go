@@ -8,15 +8,14 @@ import (
 	"strings"
 
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 // NodeIDByteLength is the length of a crypto.Address. Currently only 20.
 // FIXME: support other length addresses?
-const NodeIDByteLength = ed25519.AddressSize
+const NodeIDByteLength = crypto.AddressSize
 
 // reNodeID is a regexp for valid node IDs.
-var reNodeID = regexp.MustCompile(`^[0-9a-fA-F]{` + fmt.Sprint(2*NodeIDByteLength) + `}$`)
+var reNodeID = regexp.MustCompile(`^[0-9a-f]{40}$`)
 
 // NodeID is a hex-encoded crypto.Address. It must be lowercased
 // (for uniqueness) and of length 2*NodeIDByteLength.

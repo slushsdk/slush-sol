@@ -4,13 +4,13 @@ import (
 	mrand "math/rand"
 
 	"github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/stark"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 )
 
 // RandVal creates one random validator, with a key derived
 // from the input value
 func RandVal(i int) types.ValidatorUpdate {
-	pubkey := stark.GenPrivKey().PubKey().Bytes()
+	pubkey := tmrand.Bytes(32)
 	// Random value between [0, 2^16 - 1]
 	power := mrand.Uint32() & (1<<16 - 1) // nolint:gosec // G404: Use of weak random number generator
 	v := types.UpdateValidator(pubkey, int64(power), "")

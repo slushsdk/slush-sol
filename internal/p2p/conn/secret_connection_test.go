@@ -21,8 +21,6 @@ import (
 
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/crypto/stark"
-
 	"github.com/tendermint/tendermint/crypto/sr25519"
 	"github.com/tendermint/tendermint/libs/async"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
@@ -125,7 +123,7 @@ func TestSecretConnectionReadWrite(t *testing.T) {
 	genNodeRunner := func(id string, nodeConn kvstoreConn, nodeWrites []string, nodeReads *[]string) async.Task {
 		return func(_ int) (interface{}, bool, error) {
 			// Initiate cryptographic private key and secret connection trhough nodeConn.
-			nodePrvKey := stark.GenPrivKey()
+			nodePrvKey := ed25519.GenPrivKey()
 			nodeSecretConn, err := MakeSecretConnection(nodeConn, nodePrvKey)
 			if err != nil {
 				t.Errorf("failed to establish SecretConnection for node: %v", err)
@@ -263,8 +261,8 @@ func TestDeriveSecretsAndChallengeGolden(t *testing.T) {
 func TestNilPubkey(t *testing.T) {
 	var fooConn, barConn = makeKVStoreConnPair()
 	t.Cleanup(closeAll(t, fooConn, barConn))
-	var fooPrvKey = stark.GenPrivKey()
-	var barPrvKey = privKeyWithNilPubKey{stark.GenPrivKey()}
+	var fooPrvKey = ed25519.GenPrivKey()
+	var barPrvKey = privKeyWithNilPubKey{ed25519.GenPrivKey()}
 
 	go MakeSecretConnection(fooConn, fooPrvKey) //nolint:errcheck // ignore for tests
 
@@ -335,9 +333,9 @@ func makeKVStoreConnPair() (fooConn, barConn kvstoreConn) {
 func makeSecretConnPair(tb testing.TB) (fooSecConn, barSecConn *SecretConnection) {
 	var (
 		fooConn, barConn = makeKVStoreConnPair()
-		fooPrvKey        = stark.GenPrivKey()
+		fooPrvKey        = ed25519.GenPrivKey()
 		fooPubKey        = fooPrvKey.PubKey()
-		barPrvKey        = stark.GenPrivKey()
+		barPrvKey        = ed25519.GenPrivKey()
 		barPubKey        = barPrvKey.PubKey()
 	)
 
@@ -352,7 +350,7 @@ func makeSecretConnPair(tb testing.TB) (fooSecConn, barSecConn *SecretConnection
 			remotePubBytes := fooSecConn.RemotePubKey()
 			if !remotePubBytes.Equals(barPubKey) {
 				err = fmt.Errorf("unexpected fooSecConn.RemotePubKey.  Expected %v, got %v",
-					barPubKey, remotePubBytes)
+					barPubKey, fooSecConn.RemotePubKey())
 				tb.Error(err)
 				return nil, true, err
 			}

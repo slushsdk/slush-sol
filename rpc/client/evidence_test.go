@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/encoding"
-	"github.com/tendermint/tendermint/crypto/pedersen"
-	"github.com/tendermint/tendermint/crypto/stark"
+	"github.com/tendermint/tendermint/crypto/tmhash"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	"github.com/tendermint/tendermint/privval"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -62,16 +62,16 @@ func makeEvidences(
 		Type:             tmproto.PrevoteType,
 		Timestamp:        defaultTestTime,
 		BlockID: types.BlockID{
-			Hash: crypto.ChecksumFelt(pedersen.RandFeltBytes(32)),
+			Hash: tmhash.Sum(tmrand.Bytes(tmhash.Size)),
 			PartSetHeader: types.PartSetHeader{
 				Total: 1000,
-				Hash:  crypto.ChecksumFelt(pedersen.RandFeltBytes(32)),
+				Hash:  tmhash.Sum([]byte("partset")),
 			},
 		},
 	}
 
 	vote2 := vote
-	vote2.BlockID.Hash = crypto.ChecksumFelt(pedersen.RandFeltBytes(32))
+	vote2.BlockID.Hash = tmhash.Sum([]byte("blockhash2"))
 	correct = newEvidence(t, val, &vote, &vote2, chainID)
 
 	fakes = make([]*types.DuplicateVoteEvidence, 0)
@@ -139,8 +139,8 @@ func TestBroadcastEvidence_DuplicateVoteEvidence(t *testing.T) {
 		err = client.WaitForHeight(c, status.SyncInfo.LatestBlockHeight+2, nil)
 		require.NoError(t, err)
 
-		starkpub := pv.Key.PubKey.(stark.PubKey)
-		rawpub := starkpub.Bytes()
+		ed25519pub := pv.Key.PubKey.(ed25519.PubKey)
+		rawpub := ed25519pub.Bytes()
 		result2, err := c.ABCIQuery(ctx, "/val", rawpub)
 		require.NoError(t, err)
 		qres := result2.Response

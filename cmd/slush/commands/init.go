@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/internal/settlement/protostar"
-	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmtime "github.com/tendermint/tendermint/libs/time"
@@ -44,64 +41,64 @@ func initFiles(cmd *cobra.Command, args []string) error {
 	}
 	config.Mode = args[0]
 
-	if config.Mode == cfg.ModeValidator {
-		if network != "devnet" && accountAddress == "" {
-			return errors.New("must specify an account address: slush init --account-address <address>")
-		}
+	// if config.Mode == cfg.ModeValidator {
+	// 	if network != "devnet" && accountAddress == "" {
+	// 		return errors.New("must specify an account address: slush init --account-address <address>")
+	// 	}
 
-		if err := initProtostarConfig(config, accountAddress, network); err != nil {
-			return err
-		}
+	// 	if err := initProtostarConfig(config, accountAddress, network); err != nil {
+	// 		return err
+	// 	}
 
-		if err := initVerifierAddress(config, logger); err != nil {
-			return err
-		}
-	}
+	// 	if err := initVerifierAddress(config, logger); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	return initFilesWithConfig(config)
 }
 
-func initProtostarConfig(conf *cfg.Config, accountAddress, network string) error {
-	switch network {
-	case "testnet":
-		conf.Protostar = &cfg.ProtostarConfig{
-			AccountAddress: accountAddress,
-			ChainId:        "1536727068981429685321",
-			Network:        "testnet",
-			PrivateKeyPath: "pkey",
-		}
-	case "devnet":
-		fallthrough
-	default:
-		conf.Protostar = cfg.DefaultProtostarConfig()
-	}
-	err := conf.Protostar.ValidateBasic()
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func initProtostarConfig(conf *cfg.Config, accountAddress, network string) error {
+// 	switch network {
+// 	case "testnet":
+// 		conf.Protostar = &cfg.ProtostarConfig{
+// 			AccountAddress: accountAddress,
+// 			ChainId:        "1536727068981429685321",
+// 			Network:        "testnet",
+// 			PrivateKeyPath: "pkey",
+// 		}
+// 	case "devnet":
+// 		fallthrough
+// 	default:
+// 		conf.Protostar = cfg.DefaultProtostarConfig()
+// 	}
+// 	err := conf.Protostar.ValidateBasic()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func initVerifierAddress(conf *cfg.Config, logger log.Logger) (err error) {
-	classHashHex, transactionHashHex, err := protostar.Declare(logger, conf.Protostar, filepath.Join(conf.CairoDir, "build/main.json"))
-	if err != nil {
-		return
-	}
-	logger.Info(fmt.Sprintf("Successfully sent declare tx with classHash: %s and transactionHash: %s", classHashHex, transactionHashHex))
+// func initVerifierAddress(conf *cfg.Config, logger log.Logger) (err error) {
+// 	classHashHex, transactionHashHex, err := protostar.Declare(logger, conf.Protostar, filepath.Join(conf.CairoDir, "build/main.json"))
+// 	if err != nil {
+// 		return
+// 	}
+// 	logger.Info(fmt.Sprintf("Successfully sent declare tx with classHash: %s and transactionHash: %s", classHashHex, transactionHashHex))
 
-	contractAddressHex, transactionHex, err := protostar.Deploy(logger, conf.Protostar, classHashHex)
-	if err != nil {
-		return
-	}
-	logger.Info(fmt.Sprintf("Successfully sent deploy tx with contractAddress: %s and transactionHash: %s", contractAddressHex, transactionHex))
+// 	contractAddressHex, transactionHex, err := protostar.Deploy(logger, conf.Protostar, classHashHex)
+// 	if err != nil {
+// 		return
+// 	}
+// 	logger.Info(fmt.Sprintf("Successfully sent deploy tx with contractAddress: %s and transactionHash: %s", contractAddressHex, transactionHex))
 
-	if err != nil {
-		return
-	}
+// 	if err != nil {
+// 		return
+// 	}
 
-	conf.VerifierAddress = contractAddressHex
-	return
-}
+// 	conf.VerifierAddress = contractAddressHex
+// 	return
+// }
 
 func initFilesWithConfig(config *cfg.Config) error {
 	var (

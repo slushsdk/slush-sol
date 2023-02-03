@@ -8,12 +8,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/pedersen"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
 )
 
 const (
-	testPartSize = 1024 // 64KB ...  4096 // 4KB
+	testPartSize = 65536 // 64KB ...  4096 // 4KB
 )
 
 func TestBasicPartSet(t *testing.T) {
@@ -167,7 +166,7 @@ func TestPartProtoBuf(t *testing.T) {
 	proof := merkle.Proof{
 		Total:    1,
 		Index:    1,
-		LeafHash: pedersen.RandFeltBytes(32),
+		LeafHash: tmrand.Bytes(32),
 	}
 	testCases := []struct {
 		msg     string

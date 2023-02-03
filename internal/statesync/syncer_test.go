@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/pedersen"
 	tmsync "github.com/tendermint/tendermint/internal/libs/sync"
 	"github.com/tendermint/tendermint/internal/proxy"
 	proxymocks "github.com/tendermint/tendermint/internal/proxy/mocks"
@@ -39,7 +38,7 @@ func TestSyncer_SyncAny(t *testing.T) {
 		},
 
 		LastBlockHeight: 1,
-		LastBlockID:     types.BlockID{Hash: pedersen.RandFeltBytes(32)},
+		LastBlockID:     types.BlockID{Hash: []byte("blockhash")},
 		LastBlockTime:   time.Now(),
 		LastResultsHash: []byte("last_results_hash"),
 		AppHash:         []byte("app_hash"),
@@ -51,7 +50,7 @@ func TestSyncer_SyncAny(t *testing.T) {
 		ConsensusParams:                  *types.DefaultConsensusParams(),
 		LastHeightConsensusParamsChanged: 1,
 	}
-	commit := &types.Commit{BlockID: types.BlockID{Hash: pedersen.RandFeltBytes(32)}}
+	commit := &types.Commit{BlockID: types.BlockID{Hash: []byte("blockhash")}}
 
 	chunks := []*chunk{
 		{Height: 1, Format: 1, Index: 0, Chunk: []byte{1, 1, 0}},

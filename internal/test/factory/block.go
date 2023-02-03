@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/pedersen"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/types"
 	"github.com/tendermint/tendermint/version"
 )
@@ -25,11 +25,11 @@ func MakeVersion() version.Consensus {
 }
 
 func RandomAddress() []byte {
-	return pedersen.RandFeltBytes(crypto.AddressSize)
+	return crypto.CRandBytes(crypto.AddressSize)
 }
 
 func RandomHash() []byte {
-	return pedersen.RandFeltBytes(crypto.HashSize)
+	return crypto.CRandBytes(tmhash.Size)
 }
 
 func MakeBlockID() types.BlockID {

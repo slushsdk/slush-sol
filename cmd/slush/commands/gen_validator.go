@@ -19,7 +19,7 @@ var GenValidatorCmd = &cobra.Command{
 }
 
 func init() {
-	GenValidatorCmd.Flags().StringVar(&keyType, "key", types.ABCIPubKeyTypeStark,
+	GenValidatorCmd.Flags().StringVar(&keyType, "key", types.ABCIPubKeyTypeEd25519,
 		"Key type to generate privval file with. Options: ed25519, secp256k1")
 }
 

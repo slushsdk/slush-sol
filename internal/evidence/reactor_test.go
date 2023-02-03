@@ -15,6 +15,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/internal/evidence"
 	"github.com/tendermint/tendermint/internal/evidence/mocks"
 	"github.com/tendermint/tendermint/internal/p2p"
@@ -503,10 +504,10 @@ func TestEvidenceListSerialization(t *testing.T) {
 			Round:     2,
 			Timestamp: stamp,
 			BlockID: types.BlockID{
-				Hash: crypto.Checksum128([]byte("blockID_hash")),
+				Hash: tmhash.Sum([]byte("blockID_hash")),
 				PartSetHeader: types.PartSetHeader{
 					Total: 1000000,
-					Hash:  crypto.Checksum128([]byte("blockID_part_set_header_hash")),
+					Hash:  tmhash.Sum([]byte("blockID_part_set_header_hash")),
 				},
 			},
 			ValidatorAddress: crypto.AddressHash([]byte("validator_address")),
@@ -535,7 +536,7 @@ func TestEvidenceListSerialization(t *testing.T) {
 	}{
 		"DuplicateVoteEvidence": {
 			[]types.Evidence{dupl},
-			"0a9f020a9c020a8501080210031802224a0a2003e7a58a7e2d9ebe51da3a5fe11c4795b464e84d9b29e293efa41331bae8e094122608c0843d122001031d61b8e12a45dfdda50a056cbd5281f024574a304d4bb53baa7a3bfa55992a0b08b1d381d20510809dca6f3220043138d42edf17664fdea6079761873fd57d7cedc3685abdf9fe9384f1e1520f38d5bb03128501080110031802224a0a2003e7a58a7e2d9ebe51da3a5fe11c4795b464e84d9b29e293efa41331bae8e094122608c0843d122001031d61b8e12a45dfdda50a056cbd5281f024574a304d4bb53baa7a3bfa55992a0b08b1d381d20510809dca6f3220043138d42edf17664fdea6079761873fd57d7cedc3685abdf9fe9384f1e1520f38d5bb03180a200a2a060880dbaae105",
+			"0a85020a82020a79080210031802224a0a208b01023386c371778ecb6368573e539afc3cc860ec3a2f614e54fe5652f4fc80122608c0843d122072db3d959635dff1bb567bedaa70573392c5159666a3f8caf11e413aac52207a2a0b08b1d381d20510809dca6f32146af1f4111082efb388211bc72c55bcd61e9ac3d538d5bb031279080110031802224a0a208b01023386c371778ecb6368573e539afc3cc860ec3a2f614e54fe5652f4fc80122608c0843d122072db3d959635dff1bb567bedaa70573392c5159666a3f8caf11e413aac52207a2a0b08b1d381d20510809dca6f32146af1f4111082efb388211bc72c55bcd61e9ac3d538d5bb03180a200a2a060880dbaae105",
 		},
 	}
 

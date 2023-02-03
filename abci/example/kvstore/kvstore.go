@@ -10,7 +10,6 @@ import (
 
 	"github.com/tendermint/tendermint/abci/example/code"
 	"github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/version"
 )
 
@@ -124,8 +123,8 @@ func (app *Application) CheckTx(req types.RequestCheckTx) types.ResponseCheckTx 
 
 func (app *Application) Commit() types.ResponseCommit {
 	// Using a memdb - just return the big endian size of the db
-	appHash := make([]byte, crypto.HashSize)
-	binary.PutVarint(appHash[crypto.HashSize-8:], app.state.Size)
+	appHash := make([]byte, 8)
+	binary.PutVarint(appHash, app.state.Size)
 	app.state.AppHash = appHash
 	app.state.Height++
 	saveState(app.state)

@@ -11,9 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/pedersen"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	cstypes "github.com/tendermint/tendermint/internal/consensus/types"
 	"github.com/tendermint/tendermint/internal/test/factory"
 	"github.com/tendermint/tendermint/libs/bits"
@@ -27,11 +26,11 @@ import (
 func TestMsgToProto(t *testing.T) {
 	psh := types.PartSetHeader{
 		Total: 1,
-		Hash:  pedersen.RandFeltBytes(32),
+		Hash:  tmrand.Bytes(32),
 	}
 	pbPsh := psh.ToProto()
 	bi := types.BlockID{
-		Hash:          pedersen.RandFeltBytes(32),
+		Hash:          tmrand.Bytes(32),
 		PartSetHeader: psh,
 	}
 	pbBi := bi.ToProto()
@@ -44,7 +43,7 @@ func TestMsgToProto(t *testing.T) {
 		Proof: merkle.Proof{
 			Total:    1,
 			Index:    1,
-			LeafHash: pedersen.RandFeltBytes(32),
+			LeafHash: tmrand.Bytes(32),
 			Aunts:    [][]byte{},
 		},
 	}
@@ -217,7 +216,7 @@ func TestWALMsgProto(t *testing.T) {
 		Proof: merkle.Proof{
 			Total:    1,
 			Index:    1,
-			LeafHash: pedersen.RandFeltBytes(32),
+			LeafHash: tmrand.Bytes(32),
 			Aunts:    [][]byte{},
 		},
 	}
@@ -663,7 +662,7 @@ func TestProposalPOLMessageValidateBasic(t *testing.T) {
 
 func TestBlockPartMessageValidateBasic(t *testing.T) {
 	testPart := new(types.Part)
-	testPart.Proof.LeafHash = crypto.Checksum128([]byte("leaf"))
+	testPart.Proof.LeafHash = tmhash.Sum([]byte("leaf"))
 	testCases := []struct {
 		testName      string
 		messageHeight int64

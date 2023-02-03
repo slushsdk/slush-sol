@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmcrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
 )
 
@@ -79,8 +79,9 @@ func (op ValueOp) Run(args [][]byte) ([][]byte, error) {
 		return nil, fmt.Errorf("expected 1 arg, got %v", len(args))
 	}
 	value := args[0]
-
-	vhash := crypto.Checksum128(value)
+	hasher := tmhash.New()
+	hasher.Write(value)
+	vhash := hasher.Sum(nil)
 
 	bz := new(bytes.Buffer)
 	// Wrap <op.Key, vhash> to hash the KVPair.
@@ -93,7 +94,7 @@ func (op ValueOp) Run(args [][]byte) ([][]byte, error) {
 	}
 
 	return [][]byte{
-		op.Proof.ComputeRootHashInt128(),
+		op.Proof.ComputeRootHash(),
 	}, nil
 }
 

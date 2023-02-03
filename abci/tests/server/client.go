@@ -9,7 +9,7 @@ import (
 
 	abciclient "github.com/tendermint/tendermint/abci/client"
 	"github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/stark"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 )
 
 var ctx = context.Background()
@@ -18,7 +18,7 @@ func InitChain(client abciclient.Client) error {
 	total := 10
 	vals := make([]types.ValidatorUpdate, total)
 	for i := 0; i < total; i++ {
-		pubkey := stark.GenPrivKey().PubKey().Bytes()
+		pubkey := tmrand.Bytes(33)
 		// nolint:gosec // G404: Use of weak random number generator
 		power := mrand.Int()
 		vals[i] = types.UpdateValidator(pubkey, int64(power), "")
