@@ -1,11 +1,8 @@
 package settlement
 
 import (
-	"fmt"
-
 	"github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/internal/settlement/parser"
-	"github.com/tendermint/tendermint/internal/settlement/protostar"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/libs/service"
 )
@@ -75,10 +72,10 @@ func (r *Reactor) SendCommit(inputs parser.SettlementData) (err error) {
 	logger := r.logger
 	logger.Info("settling commit")
 
-	err = protostar.Invoke(logger, r.cfg.Protostar, r.cfg.VerifierAddress, "externalVerifyAdjacent", inputs)
-	if err != nil {
-		err = fmt.Errorf("failed to invoke starknet contract: %w", err)
-		return
-	}
+	// err = protostar.Invoke(logger, r.cfg.Protostar, r.cfg.VerifierAddress, "externalVerifyAdjacent", inputs)
+	// if err != nil {
+	// 	err = fmt.Errorf("failed to invoke starknet contract: %w", err)
+	// 	return
+	// }
 	return
 }

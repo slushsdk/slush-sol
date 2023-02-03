@@ -123,20 +123,20 @@ func testnetFiles(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if network == "devnet" {
-		config.Protostar.GatewayUrl = "http://host.docker.internal:5050/"
-		accountAddress = "0x0792D501F905D9f35067931950A0EabC6E540D25c50cA6A6A462Bd9166cfDF3d"
-	} else if network == "testnet" {
-		config.Protostar = &cfg.ProtostarConfig{
-			AccountAddress: accountAddress,
-			ChainId:        "1536727068981429685321",
-			Network:        "testnet",
-			PrivateKeyPath: "pkey",
-		}
-	}
-	if err := initVerifierAddress(config, logger); err != nil {
-		return err
-	}
+	// if network == "devnet" {
+	// 	config.Protostar.GatewayUrl = "http://host.docker.internal:5050/"
+	// 	accountAddress = "0x0792D501F905D9f35067931950A0EabC6E540D25c50cA6A6A462Bd9166cfDF3d"
+	// } else if network == "testnet" {
+	// 	config.Protostar = &cfg.ProtostarConfig{
+	// 		AccountAddress: accountAddress,
+	// 		ChainId:        "1536727068981429685321",
+	// 		Network:        "testnet",
+	// 		PrivateKeyPath: "pkey",
+	// 	}
+	// }
+	// if err := initVerifierAddress(config, logger); err != nil {
+	// 	return err
+	// }
 
 	genVals := make([]types.GenesisValidator, nValidators)
 
